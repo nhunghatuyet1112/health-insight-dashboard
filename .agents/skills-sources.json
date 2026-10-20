@@ -1,0 +1,79 @@
+[
+  {
+    "directory": "composition-patterns",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/composition-patterns",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "e38e0eaa609316b10423a9a138ed95e35099accd3f735585295c8a8f165c28a3"
+  },
+  {
+    "directory": "deploy-to-vercel",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/deploy-to-vercel",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "cfcc3dd479ab2e0ae721ddf39b8af84d977321487672f1487c8d6855f576927b"
+  },
+  {
+    "directory": "react-best-practices",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "71ed7794962fa6e803ee83030517b5b93a9f70fbfeb431ec4535c5480a8d8355"
+  },
+  {
+    "directory": "react-native-skills",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-native-skills",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "4012750a5ccbe064ca04af3835d5d1b011979d2d09d9b6df1c8128fac58e0a66"
+  },
+  {
+    "directory": "react-view-transitions",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/react-view-transitions",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "1520343c8814c972fee001cac6d6185976d6eb3f4edcac33afe95c10f3b3228b"
+  },
+  {
+    "directory": "tailwind-design-system",
+    "source": "https://github.com/wshobson/agents/tree/main/plugins/frontend-mobile-development/skills/tailwind-design-system",
+    "requestedSource": "https://www.aura.build/skills/a28a06d1-9ece-4320-a599-f11945fef850/tailwind-design-system-v4",
+    "installedOn": "2026-10-20",
+    "skillSha256": "b6577edb7b7f71a6954f68b80c7eea1748ccdf31862759f864bce558fb2bcf83"
+  },
+  {
+    "directory": "vercel-cli-with-tokens",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/vercel-cli-with-tokens",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "c06bea99e75eab07fde4fae26069baa002f82f39b53f07981704c2901551dd4c"
+  },
+  {
+    "directory": "vercel-optimize",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/vercel-optimize",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "95ae2683b30d892d165af92a350c5628b68106f395a59b448857b654e306ed91"
+  },
+  {
+    "directory": "web-design-guidelines",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+  },
+  {
+    "directory": "web-interface-guidelines",
+    "source": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md",
+    "requestedSource": "https://www.aura.build/skills/77b75b55-6806-4750-84b3-1e9c00b391d8/web-interface-guidelines",
+    "installedOn": "2026-10-20",
+    "skillSha256": "fba428a8b9283e9f21257126337ca8ae2e6806f15699654ddf4e6fca9889043f"
+  },
+  {
+    "directory": "writing-guidelines",
+    "source": "https://github.com/vercel-labs/agent-skills/tree/main/skills/writing-guidelines",
+    "requestedSource": "vercel-labs/agent-skills",
+    "installedOn": "2026-10-20",
+    "skillSha256": "89a5f581193289b80af58b980090aeed535047c8df2b55ccbaae0de40283a99d"
+  }
+]
