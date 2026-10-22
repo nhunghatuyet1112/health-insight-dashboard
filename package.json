@@ -4,10 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run design:check && tsc -b && tsc -p tsconfig.server.json && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs",
+    "design:tokens": "node scripts/generate-design-system.mjs",
+    "design:check": "node scripts/generate-design-system.mjs --check",
+    "start": "node --env-file-if-exists=.env dist-server/server/index.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
