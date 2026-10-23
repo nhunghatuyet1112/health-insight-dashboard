@@ -645,8 +645,8 @@ export function HealthOverview() {
                     <WorkoutHistory data={data} />
                   </div>
                   <div>
-                    <Panel><div className="section-heading"><h2>Goals Progress</h2><Target size={18} aria-hidden="true" /></div><GoalProgress data={data} /><Button variant="link" size="sm" onClick={() => navigate("/goals")}>Review targets <ArrowRight size={14} /></Button></Panel>
-                    <Panel><div className="section-heading"><h2>Wellness Journal Check-in</h2></div>{data.checkins.length ? data.checkins.slice(-2).map(e => <div className="health-checkin" key={e.id}><span>{e.date} · Self-reported</span><p>Perceived Energy <b>{e.energy} / 5</b></p><p>Perceived Stress <b>{e.stress} / 5</b></p></div>) : <p className="muted">No check-ins in this period.</p>}<div className="health-journal-actions"><Button variant="link" size="sm" onClick={() => navigate('/journal')}>Open Wellness Journal <ArrowRight size={13} aria-hidden="true" /></Button></div></Panel>
+                    <Panel><div className="section-heading"><h2>Goals Progress</h2><Target size={18} aria-hidden="true" /></div><GoalProgress data={data} /><div className="health-panel-actions"><Button variant="link" size="sm" onClick={() => navigate("/goals")}>Review targets <ArrowRight size={13} aria-hidden="true" /></Button></div></Panel>
+                    <Panel><div className="section-heading"><h2>Wellness Journal Check-in</h2></div>{data.checkins.length ? data.checkins.slice(-2).map(e => <div className="health-checkin" key={e.id}><span>{e.date} · Self-reported</span><p>Perceived Energy <b>{e.energy} / 5</b></p><p>Perceived Stress <b>{e.stress} / 5</b></p></div>) : <p className="muted">No check-ins in this period.</p>}<div className="health-panel-actions"><Button variant="link" size="sm" onClick={() => navigate('/journal')}>Open wellness journal <ArrowRight size={13} aria-hidden="true" /></Button></div></Panel>
                   </div>
                 </div>
               </>

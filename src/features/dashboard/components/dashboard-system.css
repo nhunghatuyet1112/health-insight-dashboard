@@ -1178,7 +1178,7 @@
   align-items: end;
   gap: 8px;
 }
-.health-journal-actions {
+.health-panel-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 8px;
@@ -1311,3 +1311,6 @@
 .synapse-chat-footer form { gap: 8px; }
 .synapse-chat-footer .ui-input { padding: 6px 12px; height: 32px; background: var(--color-surface-container-low); font: var(--type-body-sm); }
 .synapse-chat-footer [type=submit] { width: 32px; height: 32px; }
+
+/* Leave the final actions above the floating assistant at the end of the page. */
+.dashboard-main.health-overview { padding-bottom: 96px; }
