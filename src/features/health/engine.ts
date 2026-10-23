@@ -305,7 +305,7 @@ export function analyze(sources: Provider[], range: Range, targets: Goals, optio
       value: workoutAvailable
         ? workouts.reduce((n, w) => n + w.durationMinutes, 0)
         : null,
-      previousValue: workoutAvailable
+      previousValue: workoutAvailable && previous.length
         ? priorWorkouts.reduce((n, w) => n + w.durationMinutes, 0)
         : null,
       unit: "min across unique sessions",

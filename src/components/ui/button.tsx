@@ -8,6 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        suggestion: "rounded-full border-border-strong bg-surface-container-low text-text-secondary hover:border-action/50 hover:bg-action/10 hover:text-action",
         default: "bg-action text-primary-foreground hover:bg-action-hover active:bg-action-pressed",
         outline:
           "border-action/50 bg-transparent text-action-hover hover:bg-action/10 hover:border-action-hover active:bg-action/20",
@@ -22,6 +23,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
+        inline: "inline h-auto rounded-none p-0 [font:inherit] font-medium align-baseline",
         telemetry: "h-8 gap-1.5 px-3 font-mono text-xs font-normal",
         default:
           "h-9 gap-2 px-4 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
@@ -34,6 +36,9 @@ const buttonVariants = cva(
         "icon-sm":
           "size-8 rounded-control in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-11",
+      },
+      wrap: {
+        true: "h-auto min-h-8 min-w-0 max-w-full whitespace-normal text-left [overflow-wrap:anywhere]",
       },
     },
     defaultVariants: {
@@ -48,6 +53,7 @@ function Button({
   variant = "default",
   size = "default",
   loading = false,
+  wrap,
   children,
   disabled,
   ...props
@@ -59,7 +65,7 @@ function Button({
       data-loading={loading || undefined}
       aria-busy={loading || undefined}
       disabled={disabled || loading}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size, wrap, className }))}
       {...props}
     >
       {loading && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}

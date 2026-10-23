@@ -86,10 +86,9 @@
 .ui-metric-comparison .ui-comparison-unavailable { display: block; font: var(--type-label-md); color: var(--color-text-secondary); }
 .ui-metric > footer { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--color-border-subtle); color: var(--color-text-secondary); font: var(--type-label-md); font-size: 11px; line-height: 16px; }
 .ui-metric footer b { color: var(--color-text-primary); font-weight: 500; }
-.ui-metric > footer > span:last-child { color: var(--color-text-secondary); }
+.ui-metric > footer > span:last-child { grid-column: 1 / -1; text-align: right; white-space: nowrap; color: var(--color-text-secondary); }
 .ui-metric[data-tone=success] > footer > span:last-child { color: var(--color-primary); }
 .ui-metric[data-state=limited] .ui-comparison-unavailable { color: color-mix(in srgb, var(--color-warning) 75%, var(--color-text-secondary)); }
-.ui-metric[data-state=limited] > footer > span:first-child { color: var(--color-warning); }
 .ui-metric-warning { position: static; max-width: 82px; padding: 3px 6px; font: var(--type-label-sm); line-height: 16px; font-weight: 600; }
 .ui-metric[data-state=empty] { border-style: dashed; }
 .ui-metric[data-state=empty] .ui-metric-value strong { color: var(--color-disabled-foreground); }

@@ -2,11 +2,7 @@ import { Card, Select } from "@/components/ui/health-kit";
 import type { ReactNode, ComponentProps } from "react";
 import {
   Activity,
-  ChartNoAxesCombined,
-  Flag,
   LayoutDashboard,
-  Watch,
-  ChevronDown,
   CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,10 +53,6 @@ export function DashboardShell({
   const route = useRoute();
   const pages = [
     { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
-    { path: "/insights", label: "Health Insights", icon: ChartNoAxesCombined },
-    { path: "/journal", label: "Wellness Journal", icon: Activity },
-    { path: "/goals", label: "Goals", icon: Flag },
-    { path: "/integrations", label: "Devices & Sync", icon: Watch },
   ];
   const currentPage =
     pages.find((p) => route.startsWith(p.path))?.path ?? "/dashboard";
@@ -92,7 +84,6 @@ export function DashboardShell({
             </span>
             <div>
               <strong>Health Insight</strong>
-              <small>v2.4 Telemetry</small>
             </div>
             <i aria-hidden="true" />
           </a>
@@ -108,9 +99,7 @@ export function DashboardShell({
               >
                 <Icon size={19} />
                 <span>{label}</span>
-                {path === "/insights" && <ChevronDown size={14} />}
               </Button>
-              {path === "/insights" && <div className="dashboard-subnav">{["activity", "sleep", "recovery"].map(pillar => <a key={pillar} href={`#/insights/${pillar}`} aria-current={route === `/insights/${pillar}` ? "page" : undefined}>{pillar[0].toUpperCase() + pillar.slice(1)}</a>)}</div>}
               </div>
             ))}
           </nav>
@@ -126,7 +115,7 @@ export function DashboardShell({
           </span>
           <div>
             <strong>{name}</strong>
-            <small>Office Worker • GMT+7 Sync</small>
+            <small>Office Worker</small>
           </div>
         </div>
       </aside>

@@ -1,7 +1,7 @@
-import { Input, SegmentedControl, MetricCard, GoalCard, EvidenceCard, Feedback, EmptyState, Dialog } from "@/components/ui/health-kit";
+import { Input, SegmentedControl, MetricCard, GoalCard, EvidenceCard, Feedback, EmptyState, ExpandableText } from "@/components/ui/health-kit";
 import { Button } from "@/components/ui/button";
 import { WellnessJournal } from "./WellnessJournal";
-import { useMemo, useState, useRef, useLayoutEffect } from "react";
+import { useMemo, useState, useRef, useLayoutEffect, useId } from "react";
 import {
   Area,
   AreaChart,
@@ -15,7 +15,6 @@ import {
 import {
   ArrowRight,
   Brain,
-  Download,
   Footprints,
   RefreshCw,
   Target,
@@ -26,8 +25,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Search,
-  Bell,
 } from "lucide-react";
 import {
   DashboardShell,
@@ -73,7 +70,6 @@ function GoalProgress({ data }: { data: Analytics }) {
           {goal.id !== "active" ? ` · ${goal.reached}/${goal.observed} recorded days met target` : ""}
         </GoalCard>
       ))}
-      <details className="health-insight health-weekly-details"><summary>Observed weekly exercise</summary>{data.weeklyExercise.map(week => <p key={week.start}>{week.start}–{week.end}: {format(week.total)} / {format(data.goals[2].target)} min · {week.observed}/7 days · {!week.sufficient ? 'Limited data' : week.met ? 'Target reached' : 'Below target in recorded data'}</p>)}<small>Complete seven-day blocks within this range; partial blocks excluded. Missing dates are not estimated.</small></details>
     </>
   );
 }
@@ -264,20 +260,34 @@ function Chart({ data, metric }: { data: Analytics; metric: Metric }) {
   );
 }
 function DailyRecords({ data }: { data: Analytics }) {
-  const [expanded, setExpanded] = useState(false);
+  return <VirtualDailyRecords key={JSON.stringify(data.current)} data={data} />;
+}
+function VirtualDailyRecords({ data }: { data: Analytics }) {
+  const [scrollTop, setScrollTop] = useState(0);
+  const captionId = useId();
   const rows = [...data.current].reverse();
+  const rowHeight = 40;
+  const visibleRows = 4;
+  const firstVisible = Math.min(Math.floor(scrollTop / rowHeight), Math.max(0, rows.length - visibleRows));
+  const start = Math.max(0, firstVisible - 2);
+  const end = Math.min(rows.length, firstVisible + visibleRows + 2);
   return <div className="health-telemetry">
-    <div className="health-table-scroll"><table>
-      <caption>Synthetic measurements · {data.period.start}–{data.period.end}</caption>
-      <thead><tr><th scope="col">Date</th><th scope="col">Steps</th><th scope="col">Active Mins</th><th scope="col">Sleep</th><th scope="col">Resting HR</th><th scope="col">Source</th></tr></thead>
-      <tbody>{(expanded ? rows : rows.slice(0, 4)).map(row => <tr key={row.date}>
+    <p id={captionId} className="health-telemetry-caption">Synthetic measurements · {data.period.start}–{data.period.end}</p>
+    {rows.length ? <div className="health-table-scroll health-telemetry-virtual" role="region" aria-labelledby={captionId} tabIndex={0} style={{height: (Math.min(visibleRows, rows.length) + 1) * rowHeight}} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
+      <table aria-labelledby={captionId} aria-rowcount={rows.length + 1}>
+        <colgroup><col style={{width: "20%"}} /><col style={{width: "12%"}} /><col style={{width: "16%"}} /><col style={{width: "15%"}} /><col style={{width: "19%"}} /><col style={{width: "18%"}} /></colgroup>
+        <thead><tr aria-rowindex={1}><th scope="col">Date</th><th scope="col">Steps</th><th scope="col">Active Mins</th><th scope="col">Sleep</th><th scope="col">Resting HR</th><th scope="col">Source</th></tr></thead>
+        <tbody>
+          {start > 0 && <tr aria-hidden="true" className="health-telemetry-spacer"><td colSpan={6} style={{height: start * rowHeight}} /></tr>}
+          {rows.slice(start, end).map((row, index) => <tr key={row.date} aria-rowindex={start + index + 2}>
         <th scope="row">{new Date(`${row.date}T00:00:00+07:00`).toLocaleDateString("en-GB", {day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Ho_Chi_Minh"})}</th>
         {metrics.map(m => <td key={m}>{row[m] === null ? "—" : m === "sleepHours" ? `${Math.floor(Math.round(row[m]! * 60) / 60)}h ${Math.round(row[m]! * 60) % 60}m` : `${format(row[m], m === "restingHeartRateBpm" ? 1 : 0)}${m === "activeMinutes" ? "m" : m === "restingHeartRateBpm" ? " bpm" : ""}`}</td>)}
         <td><span className="health-record-source">{[...new Set(metrics.map(m => row.sources[m]).filter(Boolean))].map(id => id === "manual" ? "Manual estimate" : providers.find(p => p.id === id)?.name.replace(" Connect", "").replace(" Health", "")).join(" + ") || "Missing"}</span></td>
-      </tr>)}</tbody>
-    </table></div>
-    <div className="health-table-footer"><span>Showing {expanded ? rows.length : Math.min(4, rows.length)} of {rows.length} dates</span><Button variant="link" size="sm" onClick={() => setExpanded(!expanded)}>{expanded ? "Show recent records" : "View full records"}<ArrowRight size={13} /></Button></div>
-    <p className="muted">— is missing; zero is a recorded rest day. Dates use GMT+7.</p>
+          </tr>)}
+          {end < rows.length && <tr aria-hidden="true" className="health-telemetry-spacer"><td colSpan={6} style={{height: (rows.length - end) * rowHeight}} /></tr>}
+        </tbody>
+      </table>
+    </div> : <EmptyState title="No daily records">No recorded dates in this period.</EmptyState>}
   </div>;
 }
 
@@ -298,8 +308,8 @@ function InsightList({ data, pillar, compact = false }: { data: Analytics; pilla
     <>
       {insights.length ? (
         insights.map((insight) => (
-          <EvidenceCard className={compact ? "health-pattern-evidence" : undefined} badge={compact ? "DETERMINISTIC CODE RULE" : "Code Engine"} tone={compact ? "neutral" : "info"} key={insight.id} title={insight.title} footer={<>{!compact && <p>{insight.action}</p>}<Button variant="link" size="sm" onClick={() => navigate(`/insights/${insight.pillar}`)}>Explore {insight.pillar}<ArrowRight size={13} aria-hidden="true" /></Button></>}>
-            <p>{insight.evidence}</p>
+          <EvidenceCard className={compact ? "health-pattern-evidence" : "health-attention-card"} badge={compact ? "DETERMINISTIC CODE RULE" : "Code Engine"} tone={compact ? "neutral" : "info"} key={insight.id} title={insight.title} footer={<>{!compact && (!pillar ? <ExpandableText>{insight.action}</ExpandableText> : <p>{insight.action}</p>)}<div className="health-attention-actions"><Button variant="link" size="sm" onClick={() => navigate(`/insights/${insight.pillar}`)}>Explore {insight.pillar}<ArrowRight size={13} aria-hidden="true" /></Button></div></>}>
+            {!compact && !pillar ? <ExpandableText>{insight.evidence}</ExpandableText> : <p>{insight.evidence}</p>}
           </EvidenceCard>
         ))
       ) : (
@@ -376,10 +386,6 @@ export function HealthOverview() {
   const range = useHealthStore((s) => s.range);
   const setRange = useHealthStore((s) => s.setRange);
   const reset = useHealthStore((s) => s.reset);
-  const sync = useHealthStore(s => s.connect);
-  const statusDialog = useRef<HTMLDialogElement>(null);
-  const [metricSearch, setMetricSearch] = useState("");
-  const syncing = Object.values(connections).some(c => c.status === "syncing" || c.status === "connecting");
   const [overviewMetric, setOverviewMetric] = useState<Metric>("steps");
   const [activityMetric, setActivityMetric] = useState<Metric>("steps");
   const sourceKey = (["apple", "garmin", "strava"] as Provider[])
@@ -444,7 +450,7 @@ export function HealthOverview() {
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.any([options.signal, AbortSignal.timeout(30000)]),
+      signal: AbortSignal.any([options.signal, AbortSignal.timeout(125_000)]),
       body: JSON.stringify({
         data: { permissions, entries: entries.map(entry => ({ ...entry, notes: '' })) },
         question,
@@ -463,6 +469,7 @@ export function HealthOverview() {
       }),
     });
     const payload = await response.json().catch(() => null);
+    console.info("assistant.api_response", JSON.stringify({ status: response.status, payload }));
     if (!response.ok)
       throw new Error(
         payload?.error?.message ??
@@ -478,43 +485,16 @@ export function HealthOverview() {
       );
     return payload;
   }
-  function exportData() {
-    const url = URL.createObjectURL(
-      new Blob(
-        [
-          JSON.stringify(
-            { datasetVersion: DATASET_VERSION, profile, ...data },
-            null,
-            2,
-          ),
-        ],
-        { type: "application/json" },
-      ),
-    );
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `health-insight-${range}-${data.period.end}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
   return (
     <DashboardShell
       name={profile.name}
       title={title}
       controls={
         <>
-          <div className="health-metric-search"><Search size={16} aria-hidden="true" /><Input aria-label="Search metrics and telemetry" placeholder="Search metrics & telemetry..." value={metricSearch} onChange={event => setMetricSearch(event.target.value)} />{metricSearch.trim() && <div className="health-search-results">{metrics.filter(m => metricNames[m].toLowerCase().includes(metricSearch.toLowerCase())).map(m => <Button key={m} variant="ghost" onClick={() => { setOverviewMetric(m); setMetricSearch(""); navigate("/dashboard"); }}>{metricNames[m]}</Button>)}{!metrics.some(m => metricNames[m].toLowerCase().includes(metricSearch.toLowerCase())) && <p>No matching metrics</p>}</div>}</div>
           <SegmentedControl appearance="telemetry" label="Analysis period" value={range} options={[{ value: "7d", label: range === "7d" ? "7 Days (Active)" : "7 Days" }, { value: "30d", label: range === "30d" ? "30 Days (Active)" : "30 Days" }, { value: "60d", label: range === "60d" ? "All 60D (Active)" : "All 60D" }]} onChange={setRange} />
-          <Action size="telemetry" loading={syncing} disabled={!sources.length} onClick={() => { void Promise.all(sources.map(id => sync(id))); }}><RefreshCw className="rotate-90 text-primary" size={15} aria-hidden="true" />Sync Data</Action>
-          <Action size="telemetry" variant="default" onClick={exportData} aria-label="Export health report">
-            <Download size={16} aria-hidden="true" />
-            <span className="health-export-label">Export JSON</span>
-          </Action>
-          <Action variant="status" size="icon-sm" aria-label="Notifications and sync status" onClick={() => statusDialog.current?.showModal()}><Bell size={18} />{sources.length > 0 && <span className="health-sync-dot" aria-hidden="true" />}</Action>
         </>
       }
     >
-      <Dialog ref={statusDialog} title="Data & sync status"><p>Synthetic baseline · No live sensors connected.</p>{sources.map(id => <p key={id}>{providers.find(p => p.id === id)?.name}: {connections[id].status}{connections[id].syncedAt ? ` · ${new Date(connections[id].syncedAt!).toLocaleString("en-GB", {timeZone: "Asia/Ho_Chi_Minh"})} GMT+7` : ""}</p>)}{!sources.length && <p>No connected sources.</p>}</Dialog>
       <main id="main" tabIndex={-1} className="dashboard-main health-overview">
         {page === "journal" ? <WellnessJournal data={data} /> : page === "integrations" ? (
           <>
@@ -574,7 +554,6 @@ export function HealthOverview() {
                       ? "Understand what is changing."
                       : "Small targets. Meaningful progress."}
                 </h2>
-                {page === "overview" && <span className="health-baseline-status">Synthetic baseline • {Math.round(data.summary.steps.observed / data.period.days * 100)}% steps coverage</span>}
                 <p>
                   {page === "overview" && !noData ? "Deterministic evaluation across GMT+7 window: 20 Aug 2026 – 18 Oct 2026" : noData
                     ? "Connect a simulated source to explore your health trends."
@@ -641,26 +620,10 @@ export function HealthOverview() {
                       unit={m === "steps" ? "steps/day" : m === "activeMinutes" ? "total mins" : m === "sleepHours" ? "hrs/night" : "bpm avg"} source={source} observed={summary.observed} expected={summary.expected}
                       tone={m === "activeMinutes" || m === "sleepHours" ? "info" : "success"}
                       comparison={delta === null ? undefined : <span className={m === "restingHeartRateBpm" ? "health-rhr-delta" : "ui-delta"} data-direction={delta >= 0 ? "up" : "down"}>{m === "restingHeartRateBpm" ? <Minus aria-hidden="true" /> : delta >= 0 ? <TrendingUp aria-hidden="true" /> : <TrendingDown aria-hidden="true" />}{delta >= 0 ? "+" : ""}{format(displayedDelta, m === "restingHeartRateBpm" ? 1 : 0)} {m === "sleepHours" || m === "activeMinutes" ? "min" : m === "steps" ? "" : "bpm"} vs prior {m === "steps" ? `${data.period.days}d` : ""}</span>}
-                      detail={m === "steps" && goal ? `Target Met ${goal.observed ? Math.round(goal.reached / goal.observed * 100) : 0}%` : m === "activeMinutes" && goal ? `~${format(goal.value)}m/wk (Goal: ${format(goal.target)}m)` : m === "restingHeartRateBpm" ? `Baseline: ${format(data.baseline.mean, 1)} bpm` : source}
+                      detail={m === "steps" && goal ? `Target Met ${goal.observed ? Math.round(goal.reached / goal.observed * 100) : 0}%` : m === "activeMinutes" && goal ? `~${format(goal.value)}m/wk (Goal: ${format(goal.target)}m)` : m === "sleepHours" && goal ? `Goal: ${format(goal.target, 1)} hrs/night` : m === "restingHeartRateBpm" ? `Baseline: ${format(data.baseline.mean, 1)} bpm` : source}
                       action={<Button variant="ghost" size="icon-xs" aria-label={summary.observed === 0 ? `Manage sources for ${metricNames[m]}` : `Explore ${metricNames[m]}`} onClick={() => navigate(summary.observed === 0 ? "/integrations" : `/insights/${m === "sleepHours" ? "sleep" : m === "restingHeartRateBpm" ? "recovery" : "activity"}`)}><ArrowRight size={13} aria-hidden="true" /></Button>} />;
 
                   })}
-                </div>
-                <Panel className="health-trend-panel">
-                  <div className="health-trend-heading"><div><h2>Telemetry Trendline</h2><span>{data.period.days}-Day Aggregation GMT+7</span></div>
-                  <SegmentedControl appearance="chart" label="Chart metric" value={metric} options={metrics.map(value => ({ value, label: value === "steps" ? "Steps" : chartLabels[value] }))} onChange={setOverviewMetric} /></div>
-                  <Chart data={data} metric={metric} />
-                  <div className="health-pattern"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M20 15.5A9 9 0 0 1 8.5 4 9 9 0 1 0 20 15.5Z" /><path d="m3 3 18 18" /></svg><div><InsightList data={data} pillar="sleep" compact /></div></div>
-                </Panel>
-                <div className="dashboard-content-grid">
-                  <div>
-                    <Panel><div className="section-heading"><h2>Daily Telemetry Log</h2><span>GMT+7 TIMESTAMPED</span></div><DailyRecords data={data} /></Panel>
-                    <WorkoutHistory data={data} />
-                  </div>
-                  <div>
-                    <Panel><div className="section-heading"><h2>Goals Progress</h2><Target size={18} aria-hidden="true" /></div><GoalProgress data={data} /><Button variant="link" size="sm" onClick={() => navigate("/goals")}>Review targets <ArrowRight size={14} /></Button></Panel>
-                    <Panel><div className="section-heading"><h2>Wellness Journal Check-in</h2><span>LOCAL ONLY</span></div>{data.checkins.length ? data.checkins.slice(-2).map(e => <div className="health-checkin" key={e.id}><span>{e.date} · Self-reported</span><p>Perceived Energy <b>{e.energy} / 5</b></p><p>Perceived Stress <b>{e.stress} / 5</b></p></div>) : <p className="muted">No check-ins in this period.</p>}<Button variant="link" size="sm" onClick={() => navigate('/journal')}>Open Wellness Journal <ArrowRight size={14} /></Button></Panel>
-                  </div>
                 </div>
                 <Panel>
                   <div className="section-heading">
@@ -670,10 +633,22 @@ export function HealthOverview() {
                   <div className="health-insight-grid">
                     <InsightList data={data} />
                   </div>
-                  <p className="data-caption">
-                    CALCULATED FROM SYNTHETIC RECORDS · WELLNESS OBSERVATIONS
-                  </p>
                 </Panel>
+                <Panel className="health-trend-panel">
+                  <div className="health-trend-heading"><div><h2>Telemetry Trendline</h2><span>{data.period.days}-Day Aggregation GMT+7</span></div>
+                  <SegmentedControl appearance="chart" label="Chart metric" value={metric} options={metrics.map(value => ({ value, label: value === "steps" ? "Steps" : chartLabels[value] }))} onChange={setOverviewMetric} /></div>
+                  <Chart data={data} metric={metric} />
+                </Panel>
+                <div className="dashboard-content-grid">
+                  <div>
+                    <Panel><div className="section-heading"><h2>Daily Telemetry Log</h2></div><DailyRecords data={data} /></Panel>
+                    <WorkoutHistory data={data} />
+                  </div>
+                  <div>
+                    <Panel><div className="section-heading"><h2>Goals Progress</h2><Target size={18} aria-hidden="true" /></div><GoalProgress data={data} /><Button variant="link" size="sm" onClick={() => navigate("/goals")}>Review targets <ArrowRight size={14} /></Button></Panel>
+                    <Panel><div className="section-heading"><h2>Wellness Journal Check-in</h2></div>{data.checkins.length ? data.checkins.slice(-2).map(e => <div className="health-checkin" key={e.id}><span>{e.date} · Self-reported</span><p>Perceived Energy <b>{e.energy} / 5</b></p><p>Perceived Stress <b>{e.stress} / 5</b></p></div>) : <p className="muted">No check-ins in this period.</p>}<div className="health-journal-actions"><Button variant="link" size="sm" onClick={() => navigate('/journal')}>Open Wellness Journal <ArrowRight size={13} aria-hidden="true" /></Button></div></Panel>
+                  </div>
+                </div>
               </>
             )}
             {page === "insights" && (
@@ -825,21 +800,12 @@ export function HealthOverview() {
             )}
           </>
         )}
-        <p className="health-source-note">
-          Synthetic wellness data ·{" "}
-          {data.sources.map((s) => s.name).join(" · ") ||
-            "No sources connected"}{" "}
-          · {data.period.start}–{data.period.end}. {range === "60d" ? "No earlier comparison observations." : `Compared with ${data.period.previousStart}–${data.period.previousEnd}.`} No live sensors
-          connected.
-        </p>
       </main>
       <AIChatbot
         key={`${sourceKey}-${JSON.stringify(permissions)}-${JSON.stringify(entries.map(e => ({ ...e, notes: "" })))}`}
         realAI
         contextKey={contextKey}
-        greeting={`Hi ${profile.name.split(/\s+/).slice(-2).join(" ")}, over your selected ${data.period.days}-day window, your average daily step count was ${format(data.summary.steps.mean)} steps${data.comparable("steps") ? ` (${difference(data.summary.steps.mean, data.prior.steps.mean)! >= 0 ? "+" : ""}${format(difference(data.summary.steps.mean, data.prior.steps.mean))} steps vs prior period)` : "; a prior-period comparison is unavailable"}.`}
-        initialRecommendation={data.insights.find(i => i.pillar === "sleep")?.action}
-        initialEvidence={data.evidence.filter(e => ["stepsAchievement", "stepsTarget", "activeMinutes"].includes(e.id))}
+        greeting={`Hi ${profile.name.trim().split(/\s+/).slice(-2).join(" ")}! How can I help you today?`}
         sourceLabel={`Synthetic records · ${data.period.start}–${data.period.end}`}
         suggestions={
           focus === "sleep"

@@ -1,4 +1,4 @@
-import { useId, type ComponentProps, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { AlertCircle, Check, CheckCircle2, LoaderCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
@@ -53,7 +53,7 @@ export function MetricCard({ title, value, unit, source, observed, expected, com
     <header><h3>{icon ?? <i aria-hidden="true" />}<span>{title}</span></h3>{state === "limited" ? <Badge tone="warning">&lt;70% Limited</Badge> : <span className="ui-metric-source">{source}</span>}</header>
     <div className="ui-metric-value"><strong>{value}</strong><span>{unit}</span></div>
     <div className="ui-metric-comparison">{comparison ?? <span className="ui-comparison-unavailable">Comparison unavailable{state === "limited" && <><br />(Requires ≥{Math.ceil(expected * .7)} days)</>}</span>}</div>
-    <footer><span>{state === "limited" ? <>{observed}/{expected} days ({Math.round(observed / expected * 100)}% coverage)</> : <>Coverage: <b>{observed}/{expected}d</b> ({Math.round(observed / expected * 100)}%)</>}</span><span>{state === "limited" ? source : detail ?? source}</span></footer>
+    <footer><span>{detail ?? source}</span></footer>
     {action && <div className="ui-metric-action">{action}</div>}
   </Card>;
 }
@@ -62,6 +62,68 @@ export function EvidenceCard({ title, badge = "Code Engine", tone = "info", chil
 }) {
   return <article className={cn("ui-evidence", className)}><header><h3>{title}</h3><Badge tone={tone}>{badge}</Badge></header>
     <div className="ui-evidence-body">{children}</div>{footer && <footer>{footer}</footer>}</article>;
+}
+/** Measures the disclosure together with the text so it fits on the last line. */
+export function ExpandableText({ children, lines = 2 }: { children: string; lines?: number }) {
+  const id = useId();
+  const paragraph = useRef<HTMLParagraphElement>(null);
+  const [preview, setPreview] = useState(children);
+  const [expanded, setExpanded] = useState(false);
+  const clipped = preview !== children;
+
+  useLayoutEffect(() => {
+    const element = paragraph.current;
+    if (!element) return;
+    let active = true;
+    const measure = () => {
+      if (!active || !element.clientWidth) return;
+      const style = getComputedStyle(element);
+      const probe = document.createElement("p");
+      Object.assign(probe.style, {
+        position: "fixed", visibility: "hidden", pointerEvents: "none",
+        width: `${element.clientWidth}px`, margin: "0", padding: "0",
+        font: style.font, letterSpacing: style.letterSpacing,
+        lineHeight: style.lineHeight, overflowWrap: "anywhere",
+      });
+      const text = document.createElement("span");
+      probe.append(text);
+      document.body.append(probe);
+      const limit = parseFloat(style.lineHeight) * lines + 1;
+      text.textContent = children;
+      if (probe.getBoundingClientRect().height <= limit) {
+        setPreview(children);
+        probe.remove();
+        return;
+      }
+      const control = element.querySelector("button")!.cloneNode(true) as HTMLButtonElement;
+      control.hidden = false;
+      control.style.removeProperty("display");
+      control.textContent = "Read more";
+      probe.append(control);
+      const characters = Array.from(children);
+      let low = 0;
+      let high = characters.length;
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        text.textContent = `${characters.slice(0, middle).join("").trimEnd()}…\u00a0`;
+        if (probe.getBoundingClientRect().height <= limit) low = middle;
+        else high = middle - 1;
+      }
+      setPreview(characters.slice(0, low).join("").trimEnd());
+      probe.remove();
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    void document.fonts.ready.then(measure);
+    measure();
+    return () => { active = false; observer.disconnect(); };
+  }, [children, lines]);
+
+  return <p ref={paragraph} className="ui-expandable-text">
+    <span id={id}>{expanded || !clipped ? children : `${preview}…`}</span>
+    {clipped && "\u00a0"}
+    <Button hidden={!clipped} style={clipped ? undefined : { display: "none" }} variant="link" size="inline" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(value => !value)}>{expanded ? "Show less" : "Read more"}</Button>
+  </p>;
 }
 export function Feedback({ tone = "info", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   const Icon = tone === "danger" || tone === "warning" ? AlertCircle : CheckCircle2;

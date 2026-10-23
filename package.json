@@ -8,10 +8,14 @@
     "build": "npm run design:check && tsc -b && tsc -p tsconfig.server.json && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs && npm run test:assistant",
     "design:tokens": "node scripts/generate-design-system.mjs",
     "design:check": "node scripts/generate-design-system.mjs --check",
-    "start": "node --env-file-if-exists=.env dist-server/server/index.js"
+    "start": "node --env-file-if-exists=.env dist-server/server/index.js",
+    "eval:assistant": "tsc -p tsconfig.server.json && node --env-file-if-exists=.env scripts/evaluate-assistant.mjs",
+    "test:assistant": "tsc -p tsconfig.test.json && vitest run",
+    "eval:conversation": "tsc -p tsconfig.server.json && node --env-file-if-exists=.env scripts/evaluate-conversation.mjs",
+    "eval:input-ab": "tsc -p tsconfig.server.json && node --env-file-if-exists=.env scripts/evaluate-input-ab.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -41,6 +45,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.88.0",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "5.0.5"
   }
 }

@@ -83,10 +83,14 @@ export const useOnboardingStore = create<OnboardingState>()(
     }),
     {
       name: "synapse-onboarding-minh-anh-v2",
-      version: 2,
+      version: 3,
       migrate: (persisted) => {
         const saved = persisted as Partial<OnboardingState>;
         const profile = { ...demoProfile, ...saved.profile };
+        if (profile.name === "Nguyễn Minh Anh" || profile.name === "Minh Anh")
+          profile.name = demoProfile.name;
+        if (profile.email === "minhanh@example.com")
+          profile.email = demoProfile.email;
         const selected = profile.goals.filter((id) =>
           goals.some((g) => g.id === id),
         );

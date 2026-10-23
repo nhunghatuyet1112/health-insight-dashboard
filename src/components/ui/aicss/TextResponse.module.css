@@ -1,0 +1,6 @@
+.prose { max-width: 100%; font: var(--type-body-sm); line-height: 1.6; color: var(--color-text-primary); min-width: 0; overflow-wrap: anywhere; }
+.prose p { margin-bottom: 8px; }
+.prose p:last-child { margin-bottom: 0; }
+.prose code { font: var(--type-label-sm); color: inherit; background: var(--color-surface-container-lowest); padding: 3px 5px 1px; border-radius: var(--radius-control); }
+
+.prose { white-space: pre-wrap; }

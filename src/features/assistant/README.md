@@ -1,16 +1,42 @@
-# Health Insight AI boundary
+# Health Assistant
 
-The active app uses real responses through `POST /api/chat`; it has no scripted fallback. Legacy `/reference` and `/first-day` previews retain their archive behavior.
+The chat UI starts with a personalized greeting and three clickable suggestions.
+Questions are submitted to `POST /api/chat`; replies include separate answer,
+recommendation and follow-up paragraphs. Message timestamps use GMT+7.
+ThinkingState and Orb from the public AICSS registry indicate a pending request;
+TextResponse styles completed answers. Their MIT license is kept beside the components.
 
-- `contracts.ts`: frontend/server request and response types.
-- `server/chat.ts`: validation, canonical analytics, provider call and structured evidence resolution.
-- `server/index.ts`: JSON HTTP boundary, request limits, local rate limiting and static production serving.
-- `AIChatbot.tsx`: async submission, evidence display, retry, context cancellation and retained conversation presentation.
+## Provider and context
 
-Set server-only `OPENAI_API_KEY` (or legacy `LLM_API_KEY`) and `LLM_MODEL`; see the root README. No key is accepted through the UI, emitted into Vite or printed to logs.
+`server/chat.ts` uses server-only `GEMINI_API_KEY` and `GEMINI_MODEL`
+(default `gemini-3.1-flash-lite`). Optional `GEMINI_UNDERSTANDING_MODEL` selects
+the first-stage model. No secret belongs in a `VITE_*` variable.
 
-The server sends all available pillar analytics regardless of the selected tab. Scope changes use current server-derived facts; provider, permission and journal changes start a new conversation so disconnected-provider history is not resent. Numeric evidence is resolved by the server, never copied from model-created values. Prompt rules and output validation complement each other; structured output alone does not prove semantic or medical correctness.
+Two sequential structured calls share the provider transport. Request Understanding
+receives the latest question, bounded history and metric catalog without measurements.
+It describes the need and selects relevant metric IDs. Response Generator receives
+selected canonical analytics when required, bounded history and compact understanding.
+Each call has a twenty-five-second deadline and one bounded overload retry.
 
-The unit tests use a mocked provider and no external credentials. A real provider response must be checked separately when configuration is available.
+The server recomputes analytics and permissions, validates response shape and evidence,
+and replaces trusted numeric placeholders. Unknown facts, unsupported numbers and
+malformed output fail closed. Raw journal notes remain in the browser.
+`response-validation.ts` owns contract checks; `history.ts` retains four exchanges,
+including recommendations and follow-ups. Range/goal changes omit obsolete measurements
+from outgoing history; provider/permission/journal changes reset the conversation.
 
-`/api/assistant` aliases `/api/chat`. Requests allow up to 100 validated structured manual entries and provider-specific permissions within a 128 KiB body limit. The server recomputes analytics; raw journal notes are omitted from LLM context. Sleep windows remain estimates, check-ins remain subjective and workout durations never inflate imported exercise minutes.
+## Verification and diagnostics
+
+`npm run test:assistant` runs offline Vitest checks with mocked Gemini responses.
+`tests/health-engine.test.mjs` also covers canonical data and provider boundaries;
+its response-stage harness supplies valid mocked understanding. Separate Vitest tests
+verify understanding selection and orchestration.
+
+`npm run eval:assistant`, `npm run eval:conversation` and `npm run eval:input-ab`
+are opt-in provider evaluations using synthetic scenarios. They can consume quota;
+local reports are ignored by Git. Conversation comparison uses the frozen v4 fixture.
+Mechanical validity does not establish model quality; outputs need semantic review.
+
+Server diagnostic logs include request context, history, provider output and validation
+failures. API keys and authentication headers are excluded/redacted. Browser diagnostic
+logs include response content. No production conversation storage is implemented.

@@ -2,7 +2,7 @@
 
 Your personal health intelligence companion. A demo wellness product built with React, TypeScript, Vite, Zustand, Tailwind CSS v4, shadcn/ui and Recharts.
 
-Explore **Activity, Sleep and Recovery** through Overview, Health Insights, Wellness Journal, Goals and Devices & Integrations. A floating assistant uses real OpenAI responses grounded in the same computed data as the dashboard. No account is required.
+Explore **Activity, Sleep and Recovery** through Overview, Health Insights, Wellness Journal, Goals and Devices & Integrations. A floating assistant uses real AI responses through a Node.js proxy grounded in the same computed data as the dashboard. No account is required.
 
 ## Run
 
@@ -26,9 +26,23 @@ Open `http://127.0.0.1:8787`. The Node server serves both `dist/` and `/api/chat
 
 ## Configure real AI
 
-Copy `.env.example` to `.env` and configure `OPENAI_API_KEY` and `LLM_MODEL` on the server. The model must be available to your OpenAI project and support Responses Structured Outputs. Restart the server after changing configuration. `LLM_API_KEY` is accepted as a legacy server-key alias.
+Copy `.env.example` to `.env` and configure Gemini:
 
-Never place secrets in `VITE_*` variables: those values are exposed to the browser. The app has no credential-entry UI and does not log questions, conversations or API keys.
+```sh
+cp .env.example .env
+```
+
+```dotenv
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-3.1-flash-lite
+PORT=8787
+```
+
+Restart `npm run dev` (or `npm start` after building) after configuration changes. The browser calls only `/api/chat`; the Node.js server reads `GEMINI_API_KEY` at runtime and calls Gemini’s generateContent API. Production must run the Node server, not only host the static `dist/` folder. The server serves only `dist/`, so `.env` is not a public asset; `.env` is also ignored by Git.
+
+The default Gemini model supports strict JSON Schema [structured outputs](https://ai.google.dev/gemini-api/docs/structured-output). Set `GEMINI_MODEL` to another model with this capability if needed.
+
+Never place secrets in `VITE_*` variables: those values are exposed to the browser. The app has no credential-entry UI. Server console logs include the Gemini request payload (instructions, analytics context, question and history), request ID, completion duration, provider status and error messages. API keys and authentication headers are excluded; the configured key is redacted if echoed by an error.
 
 Without configuration, every data feature works and chat shows an explicit configuration error with retry. It never substitutes scripted replies for real AI. The server binds to loopback by default and applies a twelve-request-per-minute socket-IP limit, body/history limits and provider timeouts. This is a local demo server; an eventual public deployment needs a hosting-aware shared rate limiter and proxy configuration.
 
@@ -61,15 +75,15 @@ No authentication, real wearable OAuth, Live Activity, nutrition or mental welln
 - **Sleep consistency:** population standard deviation of recorded bedtimes, with a noon day boundary to handle midnight. At least two nights are required.
 - **Recovery:** average resting HR and its change, with no clinical threshold, target or recovery score.
 
-The scenarios include activity improving, a later sleep decline, fluctuating RHR, overlapping workouts, shared missing days, provider-specific gaps and recorded rest days. The fictional Minh Anh profile is retained; the original 28-day fixtures remain only for the archive and its regression tests.
+The scenarios include activity improving, a later sleep decline, fluctuating RHR, overlapping workouts, shared missing days, provider-specific gaps and recorded rest days. The fictional Alex profile is retained; the original 28-day fixtures remain only for the archive and its regression tests.
 
 Existing profile storage migrates without losing goal targets; the legacy storage key remains for compatibility. Connection/UI settings, permissions and journal entries have their own versioned storage. Chat is held in memory, retained across navigation/minimize, and reset when providers, permissions or journal data change. **Reset Demo** restores default sources, period, profile, targets, default permissions, seeded check-ins and onboarding draft state.
 
 ## Chat API
 
-`POST /api/chat` accepts a question, up to eight user/assistant history messages, `7d` or `30d`, current view focus, allowed source IDs, bounded goal targets and dataset version. It does not accept authoritative browser-computed metrics.
+`POST /api/chat` accepts a question, up to eight user/assistant history messages (four exchanges including recommendation and follow-up), `7d`, `30d` or `60d`, current view focus, allowed source IDs, bounded goal targets and dataset version. It does not accept authoritative browser-computed metrics.
 
-The server validates inputs, regenerates the dataset and analytics, then supplies all three pillars to OpenAI Responses. View focus is a preference, not a topic restriction. The response contains `answer`, server-resolved `evidence`, `recommendation`, `followUp`, the current period and contributing sources. Evidence contains exact current/previous values, ranges and coverage. Personal numeric measurements are rendered in that evidence section; invented evidence IDs or numeric personal claims in prose are rejected. Responses are requested with `store: false`.
+The server validates inputs, regenerates the dataset and analytics, then supplies bounded summaries for all three pillars to Gemini generateContent. Full-period aggregates remain available; individual details are limited to the latest three workouts and seven check-ins, and raw daily rows are excluded to control context size. View focus is a preference, not a topic restriction. The response contains `answer`, server-resolved `evidence`, `recommendation`, `followUp`, the current period and contributing sources. Evidence contains exact current/previous values, ranges and coverage. Personal numeric measurements are rendered in that evidence section; unknown evidence IDs, invalid placeholders and model-written numeric literals are rejected. The model writes references such as `{{steps.current}}`; the server inserts the formatted number and unit, so answers can include measurements naturally. Referenced facts automatically add their evidence. Missing values and unavailable comparisons have no numeric reference. This verifies numeric origin, not the meaning of every sentence.
 
 Raw journal notes stay in the browser and are excluded from the request. Validated check-in scales and structured manual logs enter server-recomputed analytics. Manual entries remain user reports, never authenticated sensor measurements.
 
@@ -85,7 +99,7 @@ npm run lint
 
 Tests cover deterministic fixtures, normalization/fallback, deduplication, disconnect, null vs zero, equal period comparisons, goal pace, midnight consistency and the chat boundary with a mocked provider. A live provider test requires configured credentials and is separate from these deterministic tests.
 
-`PRODUCT.md` records product scope. `DESIGN.md` is the visual contract; `design/reference/` contains composition HTML and earlier baselines. `src/design-system/tokens.json` is the authoritative **health-insight-ui-kit-2.4** specification. The update retains the 260px sidebar, compact hero/header, four 210px KPI cards, 8/4 analytics layout, landing split and floating chat composition.
+`PRODUCT.md` records product scope. `DESIGN.md` is the visual contract; `design/reference/` contains composition HTML and earlier baselines. `src/design-system/tokens.json` is the authoritative **health-overview-2026-10** specification. The update retains the 260px sidebar, compact hero/header, four 210px KPI cards, 8/4 analytics layout, landing split and floating chat composition.
 
 Consume semantic tokens and the shared dashboard primitives. Edit token JSON and run `npm run design:tokens` only when an authorized token change is needed; never edit generated `theme.css` directly. Build runs `design:check`.
 
@@ -101,3 +115,15 @@ Consume semantic tokens and the shared dashboard primitives. Edit token JSON and
 Live Workout Mode remains optional and is not implemented. Automated provider-boundary tests use a mocked LLM; no successful live API call is claimed. Validate with your configured server credentials separately. The app remains usable without a key.
 
 The v2.4 component migration covers Landing, Overview, Health Insights, Goals, Journal, Integrations and the floating assistant. The implementation/consumer matrix is in `src/design-system/ADOPTION.md`. Shared components live in `src/components/ui/health-kit.tsx`; feature CSS owns page composition rather than reimplementing controls.
+
+## Assistant prompt and acceptance
+
+The assistant explains the dashboard and can suggest one small optional action. It answers in the question's language. Server instructions define the role, current canonical context, missing-data policy, fact placeholders and medical boundaries. Current analytics take precedence over older history. Trend and goal-comparison phrases are also computed on the server and can be inserted as complete fact references, so their arithmetic does not depend on the model. The opening message is a simple personalized greeting; dashboard measurements are requested through the conversation.
+
+Range and target changes retain the visible conversation. Outgoing history keeps the previous questions, actions and follow-ups but omits earlier assistant measurements and target judgments when the dashboard context has changed. Provider, permission and structured journal-entry changes reset it. The app does not persist chat to a server or database. Check-in scores have self-report evidence; preferred bed/wake times have trusted text references; manual sleep contributions are flagged as estimated time in bed. The public response contract remains plain text plus server-owned evidence; placeholder templates are internal to the provider boundary.
+
+Run `npm run eval:assistant` for fifteen fictional-data scenarios twice against the configured provider. This is an explicit live API test and may consume provider quota. Rate-limit waits/retries apply only to this evaluation command. Results are saved locally under `artifacts/` and require semantic review; the script never grades correctness merely because JSON validation passed. See `scripts/assistant-scenarios.mjs` for the acceptance cases. Diagnostic logging is described above.
+
+## Conversation regression
+
+`npm test` now includes offline Vitest checks for response contracts, numeric grounding, field review signals, safety-formatting preservation and bounded history through the provider request. The Vitest checks mock Gemini. `npm run eval:conversation` explicitly compares a frozen previous prompt with the current prompt on ten fictional scenarios, twice each, retaining raw JSON before fact substitution. The frozen baseline is stored in `tests/assistant/fixtures/conversation-v4-system.txt`. `npm run eval:input-ab` runs a separate paired synthetic input experiment. These evaluation scripts are opt-in and may consume provider quota.

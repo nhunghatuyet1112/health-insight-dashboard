@@ -15,8 +15,8 @@ export interface HealthRecord {
 }
 export const persona = {
   id: "minh-anh-demo",
-  name: "Nguyễn Minh Anh",
-  displayName: "Minh Anh",
+  name: "Alex",
+  displayName: "Alex",
   age: 30,
   occupation: "UX Designer",
   city: "TP.HCM",

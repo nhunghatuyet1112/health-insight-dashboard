@@ -77,8 +77,8 @@ export interface Profile {
   activeMinutesPerWeek: number;
 }
 export const demoProfile: Profile = {
-  name: "Nguyễn Minh Anh",
-  email: "minhanh@example.com",
+  name: "Alex",
+  email: "alex@example.com",
   dob: "1996-06-14",
   heightCm: 165,
   weightKg: 58,

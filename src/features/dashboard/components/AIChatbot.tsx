@@ -1,23 +1,37 @@
-import { Input, EvidenceCard, Feedback, LoadingState } from "@/components/ui/health-kit";
+import { Input, Feedback } from "@/components/ui/health-kit";
 import { Button } from "@/components/ui/button";
-import { useEffect, useId, useRef, useState } from "react";
+import { Orb } from "@/components/ui/aicss/Orb";
+import { ThinkingState } from "@/components/ui/aicss/ThinkingState";
+import { TextResponse } from "@/components/ui/aicss/TextResponse";
+import { useEffect, useId, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   Brain,
   MessageSquare,
   Minus,
   ArrowUp,
-  ShieldCheck,
   Bot,
   Trash2,
 } from "lucide-react";
 import { useDashboardStore } from "@/stores/dashboard-store";
-import type { ChatResponse, ChatEvidence } from "@/features/assistant/contracts";
-import { format } from "@/features/health/engine";
+import type { ChatResponse } from "@/features/assistant/contracts";
+import { buildHistory } from "@/features/assistant/history";
 interface Exchange {
   question: string;
   answer: string;
   response?: ChatResponse;
   sourceLabel?: string;
+  contextKey?: string;
+  sentAt?: string;
+  receivedAt?: string;
+}
+const messageTimeFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  day: "2-digit", month: "2-digit", year: "numeric",
+  hour: "2-digit", minute: "2-digit", hour12: false,
+});
+function MessageTimestamp({ value }: { value?: string }) {
+  if (!value) return null;
+  return <time className="synapse-chat-timestamp" dateTime={value} title={`${messageTimeFormatter.format(new Date(value))} GMT+7`}>{messageTimeFormatter.format(new Date(value))}</time>;
 }
 export interface AskOptions {
   signal: AbortSignal;
@@ -28,8 +42,6 @@ interface AIChatbotProps {
   sourceLabel: string;
   suggestions: string[];
   initialExchange?: Exchange;
-  initialEvidence?: ChatEvidence[];
-  initialRecommendation?: string;
   onAsk: (
     question: string,
     options: AskOptions,
@@ -37,52 +49,52 @@ interface AIChatbotProps {
   contextKey?: string;
   realAI?: boolean;
 }
-function GroundedTelemetry({ evidence, compact = false }: { evidence: ChatEvidence[]; compact?: boolean }) {
-  if (!evidence.length) return null;
-  const coverage = evidence.find(e => e.kind !== "target" && /^\d+\/\d+$/.test(e.coverage))?.coverage;
-  const [observed, expected] = (coverage ?? "").split("/").map(Number);
-  return <EvidenceCard className="synapse-grounded-telemetry" title="GROUNDED TELEMETRY" tone="success" badge={coverage && expected ? `Coverage ${Math.round(observed / expected * 100)}% (${coverage}d)` : "Code Engine"}>
-    {evidence.map(e => <p key={e.id}>{e.label}: <strong>{format(e.value, e.unit.includes("hour") || e.unit === "km" || e.id === "restingHeartRateBpm" ? 1 : 0)} {e.unit}</strong>{!compact && <span className="synapse-grounded-detail"> · {e.kind === "target" ? "Personal target" : `${e.coverage} recorded · ${e.start}–${e.end}`}</span>}</p>)}
-  </EvidenceCard>;
-}
 /** Fixed chat composition; synchronous archive callers and the real server API share it. */
 export function AIChatbot({
   greeting,
   sourceLabel,
   suggestions,
   initialExchange,
-  initialEvidence,
-  initialRecommendation,
   onAsk,
   contextKey = "",
   realAI = false,
 }: AIChatbotProps) {
   const open = useDashboardStore((s) => s.assistantOpen);
   const toggle = useDashboardStore((s) => s.toggleAssistant);
+  // A new visit to the same range must not revive its previous request error.
+  const requestScope = useMemo(() => ({ key: contextKey }), [contextKey]);
   const [draft, setDraft] = useState("");
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [pendingState, setPending] = useState<{
     question: string;
-    context: string;
+    context: { key: string };
     controller: AbortController;
+    sentAt: string;
   } | null>(null);
   const pending =
-    pendingState?.context === contextKey ? pendingState.question : null;
+    pendingState?.context === requestScope ? pendingState.question : null;
   const [failureState, setFailure] = useState<{
     message: string;
     question: string;
-    context: string;
+    context: { key: string };
   } | null>(null);
-  const failure = failureState?.context === contextKey ? failureState : null;
+  const failure = failureState?.context === requestScope ? failureState : null;
   const input = useRef<HTMLInputElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const active = useRef<AbortController | null>(null);
-  const currentContext = useRef(contextKey);
+  const currentContext = useRef(requestScope);
   const regionId = useId(),
     titleId = useId();
   useEffect(() => {
-    if (body.current) body.current.scrollTop = body.current.scrollHeight;
+    const container = body.current;
+    const exchange = container?.querySelector(".synapse-chat-exchange:last-child");
+    if (container && (pending || failure)) {
+      container.scrollTop = container.scrollHeight;
+    } else if (container && exchange) {
+      const start = exchange.querySelector(".synapse-chat-message-ai") ?? exchange;
+      container.scrollTop += start.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    }
   }, [exchanges, pending, failure]);
   useEffect(
     () => () => {
@@ -91,10 +103,10 @@ export function AIChatbot({
     [],
   );
   useEffect(() => {
-    currentContext.current = contextKey;
+    currentContext.current = requestScope;
     active.current?.abort();
     active.current = null;
-  }, [contextKey]);
+  }, [requestScope]);
   function close() {
     toggle();
     trigger.current?.focus();
@@ -103,14 +115,12 @@ export function AIChatbot({
     if (!question || active.current) return;
     const controller = new AbortController();
     active.current = controller;
-    const requestContext = contextKey;
-    setPending({ question, context: contextKey, controller });
+    const requestContext = requestScope;
+    const sentAt = new Date().toISOString();
+    setPending({ question, context: requestScope, controller, sentAt });
     setFailure(null);
     setDraft("");
-    const history = exchanges.slice(-4).flatMap((exchange) => [
-      { role: "user" as const, content: exchange.question.slice(0, 2000) },
-      { role: "assistant" as const, content: exchange.answer.slice(0, 2000) },
-    ]);
+    const history = buildHistory(exchanges, contextKey);
     try {
       const answer = await onAsk(question, {
         signal: controller.signal,
@@ -121,6 +131,8 @@ export function AIChatbot({
         currentContext.current !== requestContext
       )
         return;
+      console.info("assistant.before_render", JSON.stringify({ response: answer }));
+      const receivedAt = new Date().toISOString();
       setExchanges((previous) => [
         ...previous,
         {
@@ -128,6 +140,9 @@ export function AIChatbot({
           answer: typeof answer === "string" ? answer : answer.answer,
           response: typeof answer === "string" ? undefined : answer,
           sourceLabel,
+          contextKey,
+          sentAt,
+          receivedAt,
         },
       ]);
     } catch (error) {
@@ -153,6 +168,9 @@ export function AIChatbot({
       }
     }
   }
+  function handleSuggestionClick(event: MouseEvent<HTMLButtonElement>) {
+    void submit(event.currentTarget.value);
+  }
   const all = [...(initialExchange ? [initialExchange] : []), ...exchanges];
   return (
     <aside className="dashboard-assistant" aria-label="AI health assistant">
@@ -175,10 +193,7 @@ export function AIChatbot({
                 <Bot size={16} aria-hidden="true" />
               </span>
               <div>
-                <h2 id={titleId}>Synapse AI Assistant</h2>
-                <p>
-                  {realAI ? "Grounded in 60-day demo telemetry GMT+7" : "Archived scripted preview"}
-                </p>
+                <h2 id={titleId}>Health Assistant</h2>
               </div>
             </div>
             <div className="synapse-chat-controls">
@@ -201,8 +216,15 @@ export function AIChatbot({
               <span className="synapse-chat-avatar">
                 <Brain size={13} aria-hidden="true" />
               </span>
-              <div className="synapse-chat-bubble"><p>{greeting}</p>{initialEvidence?.length ? <GroundedTelemetry evidence={initialEvidence} compact /> : null}{initialRecommendation && <p className="synapse-chat-recommendation">Recommended action: {initialRecommendation}</p>}</div>
+              <div className="synapse-chat-bubble"><TextResponse><p>{greeting}</p></TextResponse></div>
             </div>
+            {all.length === 0 && !pending && !failure && (
+              <div className="synapse-chat-starters" role="group" aria-label="Suggested questions">
+                {suggestions.slice(0, 3).map(question => (
+                  <Button key={question} type="button" variant="suggestion" size="sm" wrap value={question} onClick={handleSuggestionClick}>{question}</Button>
+                ))}
+              </div>
+            )}
             <div
               role="log"
               aria-label="Assistant conversation"
@@ -215,6 +237,7 @@ export function AIChatbot({
                   <div className="synapse-chat-message synapse-chat-message-user">
                     <div className="synapse-chat-bubble">
                       {exchange.question}
+                      <MessageTimestamp value={exchange.sentAt} />
                     </div>
                   </div>
                   <div className="synapse-chat-message synapse-chat-message-ai">
@@ -222,36 +245,22 @@ export function AIChatbot({
                       <Brain size={13} aria-hidden="true" />
                     </span>
                     <div className="synapse-chat-bubble">
+                      <TextResponse>
                       <p>{exchange.answer}</p>
                       {exchange.response && (
                         <>
-                          <GroundedTelemetry evidence={exchange.response.evidence} />
                           {exchange.response.recommendation && (
                             <p>
-                              <strong>Recommended action:</strong>{" "}
                               {exchange.response.recommendation}
                             </p>
                           )}
                           {exchange.response.followUp && (
-                            <Button
-                              variant="link" size="sm"
-                              type="button"
-                              onClick={() => {
-                                setDraft(exchange.response!.followUp);
-                                input.current?.focus();
-                              }}
-                            >
-                              {exchange.response.followUp}
-                            </Button>
+                            <p>{exchange.response.followUp}</p>
                           )}
                         </>
                       )}
-                      <div className="synapse-chat-source">
-                        <ShieldCheck size={12} aria-hidden="true" />
-                        {exchange.response
-                          ? `${exchange.response.period.start}–${exchange.response.period.end} · ${exchange.response.sources.join(", ") || "No connected sources"}`
-                          : (exchange.sourceLabel ?? sourceLabel)}
-                      </div>
+                      </TextResponse>
+                      <MessageTimestamp value={exchange.receivedAt} />
                     </div>
                   </div>
                 </div>
@@ -259,9 +268,12 @@ export function AIChatbot({
               {pending && (
                 <div className="synapse-chat-exchange">
                   <div className="synapse-chat-message synapse-chat-message-user">
-                    <div className="synapse-chat-bubble">{pending}</div>
+                    <div className="synapse-chat-bubble">{pending}<MessageTimestamp value={pendingState?.sentAt} /></div>
                   </div>
-                  <LoadingState>Reviewing your health data…</LoadingState>
+                  <div className="synapse-chat-message synapse-chat-message-ai" role="status" aria-label="Reviewing your health data" aria-busy="true">
+                    <span className="synapse-chat-avatar" aria-hidden="true"><Orb variant="S1" size={20} /></span>
+                    <div className="synapse-chat-bubble synapse-chat-thinking"><ThinkingState /></div>
+                  </div>
                 </div>
               )}
             </div>
@@ -292,7 +304,6 @@ export function AIChatbot({
                 autoComplete="off"
                 aria-label="Ask the health assistant"
                 placeholder="Ask about metrics, sleep, recovery…"
-                list={`${regionId}-suggestions`}
                 value={draft}
                 maxLength={realAI ? 1500 : 300}
                 onChange={(e) => setDraft(e.target.value)}
@@ -307,7 +318,6 @@ export function AIChatbot({
                 <ArrowUp size={18} aria-hidden="true" />
               </Button>
             </form>
-            <datalist id={`${regionId}-suggestions`}>{suggestions.map(question => <option key={question} value={question} />)}</datalist>
           </footer>
         </section>
       )}

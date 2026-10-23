@@ -588,6 +588,7 @@
   font-size: 12px;
 }
 .synapse-chat-message {
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -606,6 +607,7 @@
 }
 .synapse-chat-bubble {
   min-width: 0;
+  max-width: 100%;
   padding: 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
@@ -633,37 +635,21 @@
   gap: 12px;
   margin-top: 12px;
 }
-.synapse-chat-source {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
+.synapse-chat-timestamp {
+  display: block;
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px solid var(--color-border);
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
   font: var(--type-label-sm);
-  letter-spacing: var(--type-label-sm-tracking);
 }
-.synapse-chat-source svg {
-  flex-shrink: 0;
-  margin-top: 1px;
+.synapse-chat-message-user .synapse-chat-timestamp {
+  color: inherit;
+  text-align: right;
+  border-color: currentColor;
 }
-.synapse-chat-suggestions {
-  padding-top: 16px;
-}
-.synapse-chat-suggestions > span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--color-text-muted);
-  font: var(--type-label-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--type-label-sm-tracking);
-}
-.synapse-chat-suggestions > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
+.synapse-chat-thinking { display: flex; align-items: center; min-height: 40px; }
+.synapse-chat-starters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; margin-left: 32px; }
 
 .synapse-chat-footer {
   padding: 10px;
@@ -1168,11 +1154,35 @@
 /* Active features consume UI kit primitives; these rules only arrange them. */
 .health-journal-form .ui-checkbox { display: flex; }
 .source-state .ui-badge { gap: 6px; }
-.synapse-chat { padding: 0; }
+.synapse-chat { padding: 0; height: min(480px, calc(100dvh - 112px)); }
 .synapse-chat-footer .ui-input { flex: 1; }
-.synapse-chat-suggestions .ui-prompt { border-radius: var(--radius-pill); white-space: normal; text-align: left; height: auto; }
 .synapse-chat-bubble .ui-evidence { background: var(--color-surface-dim); padding: 12px; }
 .health-insight-grid > .ui-evidence { margin: 0; }
+.health-insight-grid > .health-attention-card {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: 8px;
+}
+.health-insight-grid > .health-attention-card > header { margin-bottom: 0; }
+.health-insight-grid > .health-attention-card > footer {
+  display: grid;
+  grid-row: span 2;
+  grid-template-rows: subgrid;
+  margin-top: 0;
+}
+.health-attention-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: end;
+  gap: 8px;
+}
+.health-journal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
 .health-goal-form .ui-input, .health-journal-form .ui-input { font: var(--type-body-sm); }
 
 /* Shared shell details from the current Health Overview reference. */
@@ -1236,6 +1246,12 @@
 .health-weekly-details summary { cursor: pointer; font: var(--type-body-sm); color: var(--color-text-secondary); }
 .health-weekly-details p { margin-top: 8px; }
 .health-telemetry .health-table-scroll :is(td, th) { padding: 10px 8px; }
+.health-telemetry-caption { margin: 16px 0; font: var(--type-body-sm); color: var(--color-text-secondary); }
+.health-telemetry-virtual { overflow: auto; overscroll-behavior: contain; overflow-anchor: none; scrollbar-gutter: stable; }
+.health-telemetry-virtual table { width: 100%; min-width: 680px; table-layout: fixed; }
+.health-telemetry-virtual thead th { position: sticky; top: 0; z-index: 1; background: var(--color-surface); }
+.health-telemetry .health-telemetry-virtual :is(td, th) { height: 40px; box-sizing: border-box; white-space: nowrap; }
+.health-telemetry .health-telemetry-virtual .health-telemetry-spacer > td { padding: 0; border: 0; }
 
 .health-rhr-delta { color: var(--color-secondary); }
 
@@ -1288,18 +1304,10 @@
 .synapse-chat-header p { font: var(--type-label-sm); font-size: 9px; line-height: 13px; margin-top: 0; }
 .synapse-chat-controls { gap: 0; }
 .synapse-chat-controls > button { width: 24px; height: 24px; }
-.synapse-chat-body { padding: 2px 14px 14px; max-height: 256px; background: transparent; }
+.synapse-chat-body { flex: 1; padding: var(--spacing-card-padding) 14px 14px; max-height: none; background: transparent; }
 .synapse-chat-avatar { background: var(--color-surface-container-high); border-color: var(--color-outline-variant); margin-top: 2px; }
 .synapse-chat-bubble { background: var(--color-surface-container); border-radius: var(--radius-card); border-top-left-radius: 0; border-color: var(--color-border); line-height: 1.6; }
 .synapse-chat-message-user .synapse-chat-bubble { border-top-left-radius: var(--radius-card); border-top-right-radius: 0; }
-.synapse-chat-bubble .synapse-grounded-telemetry { padding: 8px; background: var(--color-surface-container-lowest); border: 1px solid var(--color-border-strong); border-radius: 4px; margin: 8px 0; }
-.synapse-grounded-telemetry > header { margin-bottom: 6px; gap: 6px; }
-.synapse-grounded-telemetry > header h3 { font: var(--type-label-sm); font-size: 9px; color: var(--color-text-secondary); }
-.synapse-grounded-telemetry > header .ui-badge { border: 0; background: transparent; padding: 0; color: var(--color-primary); font-size: 9px; }
-.synapse-grounded-telemetry .ui-evidence-body { font: var(--type-label-sm); line-height: 16px; }
-.synapse-grounded-telemetry p + p { margin-top: 4px; }
-.synapse-grounded-detail { color: var(--color-text-secondary); }
-.synapse-chat-recommendation { color: var(--color-text-secondary); font-size: 11px; line-height: 1.6; }
 .synapse-chat-footer form { gap: 8px; }
 .synapse-chat-footer .ui-input { padding: 6px 12px; height: 32px; background: var(--color-surface-container-low); font: var(--type-body-sm); }
 .synapse-chat-footer [type=submit] { width: 32px; height: 32px; }

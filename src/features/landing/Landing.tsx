@@ -134,7 +134,7 @@ export function Landing() {
                 ))}
               </div>
               <p>
-                Explore with <strong>Nguyễn Minh Anh</strong>, our fictional
+                Explore with <strong>Alex</strong>, our fictional
                 persona.
                 <br />
                 <span>60 days of synthetic data</span> · Real AI through a
@@ -243,8 +243,8 @@ export function Landing() {
       <Dialog ref={dialog} title={topic === "data" ? "About the demo data" : "Your demo profile"}>
         <p>
           {topic === "data"
-            ? "This preview and the dashboard share 60 days of synthetic data for Nguyễn Minh Anh (Aug 20–Oct 18, 2026). Apple Health, Garmin Connect and Strava are simulated sources. No real sensor is connected."
-            : "Your goal targets and mock source settings are saved in this browser. There are no accounts or passwords. Questions and the current synthetic analytics are sent through the server to OpenAI when AI is configured. Chat is not saved to local storage."}
+            ? "This preview and the dashboard share 60 days of synthetic data for Alex (Aug 20–Oct 18, 2026). Apple Health, Garmin Connect and Strava are simulated sources. No real sensor is connected."
+            : "Your goal targets and mock source settings are saved in this browser. There are no accounts or passwords. Questions and the current synthetic analytics are sent through the server to Groq when AI is configured. Chat is not saved to local storage."}
         </p>
         <Button
           size="lg"

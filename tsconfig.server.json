@@ -17,6 +17,6 @@
     "src/features/health/model.ts",
     "src/features/health/demo.ts",
     "src/features/health/engine.ts",
-    "src/features/assistant/contracts.ts"
+    "src/features/assistant/*.ts"
   ]
 }
