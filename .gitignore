@@ -32,3 +32,6 @@ dist-server
 # Synthetic local LLM evaluation outputs and browser verification
 artifacts/*.local.json
 artifacts/*.local.png
+
+# Vercel local project metadata
+.vercel

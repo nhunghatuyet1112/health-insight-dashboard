@@ -1,11 +1,11 @@
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { ApiError, respond, validateRequest } from "./chat.js";
 const apiOnly = process.argv.includes("--api-only");
 const root = resolve(process.cwd(), "dist");
 const limits = new Map<string, { started: number; count: number }>();
-const server = createServer(async (req, res) => {
+export async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const send = (status: number, body: unknown) => {
     res.writeHead(status, {
       "Content-Type": "application/json",
@@ -64,7 +64,10 @@ const server = createServer(async (req, res) => {
       }
       let body: unknown;
       try {
-        body = JSON.parse(Buffer.concat(chunks).toString());
+        const parsedBody = (req as IncomingMessage & { body?: unknown }).body;
+        body = chunks.length > 0
+          ? JSON.parse(Buffer.concat(chunks).toString())
+          : typeof parsedBody === "string" ? JSON.parse(parsedBody) : parsedBody;
       } catch {
         throw new ApiError(400, "INVALID_JSON", "Send a valid JSON request.");
       }
@@ -127,7 +130,8 @@ const server = createServer(async (req, res) => {
       error: { message: "File not found. Build the frontend first." },
     });
   }
-});
+}
+const server = createServer(handleRequest);
 server.requestTimeout = 30000;
 server.headersTimeout = 10000;
 const port = Number(process.env.PORT ?? 8787);
@@ -135,7 +139,7 @@ server.on("error", (error) => {
   console.error(`Health Insight server could not start: ${error.message}`);
   process.exitCode = 1;
 });
-server.listen(port, process.env.HOST ?? "127.0.0.1", () => {
+if (!process.env.VERCEL) server.listen(port, process.env.HOST ?? "127.0.0.1", () => {
   const address = server.address();
   console.log(
     `Health Insight ${apiOnly ? "API" : "app"}: http://127.0.0.1:${typeof address === "object" && address ? address.port : port}`,
