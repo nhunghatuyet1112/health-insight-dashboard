@@ -16,7 +16,9 @@ Two sequential structured calls share the provider transport. Request Understand
 receives the latest question, bounded history and metric catalog without measurements.
 It describes the need and selects relevant metric IDs. Response Generator receives
 selected canonical analytics when required, bounded history and compact understanding.
-Each call has a twenty-five-second deadline and one bounded overload retry.
+Each call has a 120-second deadline shared with at most one short HTTP 503 retry.
+Only an analytics need of `required` includes selected measurements; `helpful`
+and `not_needed` omit them while retaining trusted profile preferences.
 
 The server recomputes analytics and permissions, validates response shape and evidence,
 and replaces trusted numeric placeholders. Unknown facts, unsupported numbers and

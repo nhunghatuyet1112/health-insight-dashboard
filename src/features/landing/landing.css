@@ -47,10 +47,10 @@
 }
 .entry-header {
   padding-block: var(--spacing-gap);
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-gap);
+  gap: var(--spacing-section-padding);
   position: relative;
   z-index: 2;
 }
@@ -88,6 +88,10 @@
 }
 .entry-header-actions {
   display: flex;
+  width: 100%;
+  max-width: 512px;
+  justify-self: center;
+  justify-content: flex-end;
   align-items: center;
   gap: 8px;
 }
@@ -316,7 +320,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
-.entry-sleep {
+.entry-activity {
   padding: var(--spacing-gap);
   background: color-mix(
     in srgb,
@@ -326,27 +330,27 @@
   border: 1px solid var(--entry-border);
   border-radius: var(--radius-card);
 }
-.entry-sleep-header {
+.entry-activity-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
-.entry-sleep-header small {
+.entry-activity-header small {
   display: block;
   font: var(--type-label-sm);
   letter-spacing: var(--type-label-sm-tracking);
   color: var(--entry-muted);
 }
-.entry-sleep-header h2 {
+.entry-activity-header h2 {
   font: var(--type-headline-sm);
   letter-spacing: var(--type-headline-sm-tracking);
 }
-.entry-sleep-header h2 > span {
+.entry-activity-header h2 > span {
   font: var(--type-body-sm);
   color: var(--entry-primary);
 }
-.entry-sleep > svg {
+.entry-activity > svg {
   display: block;
   width: 100%;
   height: 64px;
@@ -414,6 +418,8 @@
 }
 
 @media (max-width: 1023px) {
+  .entry-header { display: flex; justify-content: space-between; }
+  .entry-header-actions { width: auto; }
   .entry-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -472,7 +478,7 @@
     gap: 12px;
     font-size: 10px;
   }
-  .entry-sleep-header h2 > span {
+  .entry-activity-header h2 > span {
     display: block;
   }
   .entry-preview-footer {

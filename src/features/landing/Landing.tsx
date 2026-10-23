@@ -1,12 +1,10 @@
-import { Badge, Card, MetricCard, EvidenceCard, Dialog } from "@/components/ui/health-kit";
-import { useRef, useState } from "react";
+import { Badge, Card, MetricCard, EvidenceCard } from "@/components/ui/health-kit";
 import {
   Activity,
   ArrowRight,
   Brain,
   LockKeyhole,
   RefreshCw,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,20 +20,11 @@ const preview = analyze(["apple", "garmin", "strava"], "7d", {
   active: demoProfile.activeMinutesPerWeek,
 });
 const previewSource = (metric: "steps" | "restingHeartRateBpm") => [...new Set(preview.current.filter(row => row[metric] !== null).map(row => row.sources[metric]))].map(id => id === "apple" ? "Apple" : id === "garmin" ? "Garmin" : id).join(" + ") || "No source";
-const sleepPath = preview.current
-  .map((row, i, rows) =>
-    row.sleepHours === null
-      ? ""
-      : `${i === 0 || rows[i - 1].sleepHours === null ? "M" : "L"}${i * 60} ${64 - (row.sleepHours - 5) * 20}`,
-  )
+const activityMaximum = Math.max(1, ...preview.current.map(row => row.activeMinutes ?? 0));
+const activityPath = preview.current
+  .map((row, i, rows) => row.activeMinutes === null ? "" : `${i === 0 || rows[i - 1].activeMinutes === null ? "M" : "L"}${i * 60} ${60 - row.activeMinutes / activityMaximum * 52}`)
   .join(" ");
 export function Landing() {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const [topic, setTopic] = useState<"data" | "privacy">("data");
-  const showInfo = (next: "data" | "privacy") => {
-    setTopic(next);
-    dialog.current?.showModal();
-  };
   return (
     <div className="entry-landing">
       <a
@@ -60,7 +49,6 @@ export function Landing() {
           </span>
         </a>
         <div className="entry-header-actions">
-          <Badge tone="synthetic">Telemetry Demo Preview</Badge>
           <Button
             variant="outline"
             size="sm"
@@ -144,7 +132,7 @@ export function Landing() {
           </section>
           <section
             className="entry-preview-area"
-            aria-label="Illustrative health dashboard preview"
+            aria-label="Weekly health overview"
           >
             <div className="entry-preview-glow" aria-hidden="true" />
             <Card className="entry-preview">
@@ -153,30 +141,29 @@ export function Landing() {
                   <i aria-hidden="true" />
                   YOUR WEEK AT A GLANCE
                 </span>
-                <small>ILLUSTRATIVE DEMO</small>
               </div>
               <div className="entry-preview-metrics">
                 <MetricCard title="Daily steps" value={format(preview.summary.steps.mean)} unit="steps/day" comparison={preview.comparable("steps") ? <span>{format(difference(preview.summary.steps.mean, preview.prior.steps.mean))} steps vs prior</span> : undefined} source={previewSource("steps")} observed={preview.summary.steps.observed} expected={7} detail="Recorded daily average" />
                 <MetricCard title="Resting HR" value={format(preview.summary.restingHeartRateBpm.mean)} unit="bpm" comparison={preview.comparable("restingHeartRateBpm") ? <span>{format(difference(preview.summary.restingHeartRateBpm.mean, preview.prior.restingHeartRateBpm.mean), 1)} bpm vs prior</span> : undefined} source={previewSource("restingHeartRateBpm")} observed={preview.summary.restingHeartRateBpm.observed} expected={7} tone="info" detail="Trend, not a health score" />
               </div>
-              <div className="entry-sleep">
-                <div className="entry-sleep-header">
+              <div className="entry-activity">
+                <div className="entry-activity-header">
                   <div>
-                    <small>AVERAGE SLEEP</small>
+                    <small>ACTIVE MINUTES</small>
                     <h2>
-                      {format(preview.summary.sleepHours.mean, 1)}h{" "}
-                      <span>per recorded night</span>
+                      {format(preview.summary.activeMinutes.total)} min{" "}
+                      <span>this week</span>
                     </h2>
                   </div>
                   <Badge tone="info">
-                    {preview.summary.sleepHours.observed}/7 nights
+                    {preview.summary.activeMinutes.observed}/7 days
                   </Badge>
                 </div>
                 <svg
                   viewBox="0 0 360 64"
                   fill="none"
                   role="img"
-                  aria-label="Recorded demo sleep trend; gaps represent missing nights"
+                  aria-label="Daily active minutes; gaps represent missing dates"
                 >
                   <defs>
                     <linearGradient
@@ -209,7 +196,7 @@ export function Landing() {
                     </linearGradient>
                   </defs>
                   <path
-                    d={sleepPath}
+                    d={activityPath}
                     stroke="url(#entry-cyan-line)"
                     strokeWidth="2.5"
                     strokeLinecap="round"
@@ -217,42 +204,15 @@ export function Landing() {
                 </svg>
               </div>
               <EvidenceCard title={<><Sparkles size={16} aria-hidden="true" /> Health Insight Companion</>} badge="Code Engine">
-                <p>{preview.insights.find((i) => i.pillar === "sleep")?.action}</p>
+                <p>{preview.insights.find((i) => i.pillar === "activity")?.action}</p>
               </EvidenceCard>
-              <div className="entry-preview-footer">
-                <span>
-                  <ShieldCheck size={12} aria-hidden="true" />
-                  Fictional preview values
-                </span>
-                <span>No live device connected</span>
-              </div>
             </Card>
           </section>
         </div>
       </main>
       <footer className="entry-footer entry-container">
         <span>© 2026 Health Insight Intelligence Systems.</span>
-        <nav aria-label="Landing information">
-          <Button variant="link" size="sm" onClick={() => navigate("/demo")}>Explore Demo</Button>
-          <span aria-hidden="true">/</span>
-          <Button variant="link" size="sm" onClick={() => showInfo("data")}>Data Sources</Button>
-          <span aria-hidden="true">/</span>
-          <Button variant="link" size="sm" onClick={() => showInfo("privacy")}>Demo Privacy</Button>
-        </nav>
       </footer>
-      <Dialog ref={dialog} title={topic === "data" ? "About the demo data" : "Your demo profile"}>
-        <p>
-          {topic === "data"
-            ? "This preview and the dashboard share 60 days of synthetic data for Alex (Aug 20–Oct 18, 2026). Apple Health, Garmin Connect and Strava are simulated sources. No real sensor is connected."
-            : "Your goal targets and mock source settings are saved in this browser. There are no accounts or passwords. Questions and the current synthetic analytics are sent through the server to Groq when AI is configured. Chat is not saved to local storage."}
-        </p>
-        <Button
-          size="lg"
-          onClick={() => dialog.current?.close()}
-        >
-          Got it
-        </Button>
-      </Dialog>
     </div>
   );
 }
